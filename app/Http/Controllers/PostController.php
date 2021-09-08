@@ -10,14 +10,18 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Contracts\Services\Posts\PostsServiceInterface;
 
 class PostController extends Controller
 {
+    private $postsInterface;
     protected $user;
 
-    public function __construct()
+
+    public function __construct(PostsServiceInterface $postsInterface)
     {
         $this->user = JWTAuth::parseToken()->authenticate();
+        $this->postsInterface = $postsInterface;
     }
 
     /**
@@ -27,19 +31,8 @@ class PostController extends Controller
      */
     public function index()
     {
-        // $posts = DB::table('posts')
-        //     ->join('users as u1', 'u1.id', '=', 'posts.create_user_id')
-        //     ->join('users as u2', 'u2.id', '=', 'posts.updated_user_id')
-        //     ->select('posts.*')
-        //     ->where('posts.status', '=', '1')
-        //     ->latest()
-        //     ->paginate(5);
-        log::info('Postsssssss');
-        log::info($this->user);
-        return $this->user
-            ->posts()
-            ->get();
-        // return $posts;
+        $posts = $this->postsInterface->getPostsList();
+        return $posts;
     }
 
     /**
@@ -60,26 +53,22 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->only('title', 'description');
+        log::info('Welcome from Store');
+        log::info($request);
+        $data = $request->only('title', 'comment');
         $validator = Validator::make($data, [
             'title' => 'required|string',
-            'description' => 'required',
+            'comment' => 'required',
         ]);
-
-        //Send failed response if request is not valid
         if ($validator->fails()) {
             return response()->json(['error' => $validator->messages()], 200);
         }
-        $post = DB::table('posts')->insert([
-            'title' => $request->title, 'description' => $request->description, 'status' => '1',
-            'create_user_id' => 1,
-            'updated_user_id' => 1
-        ]);
-        //Product created, return success response
+        $posts = $this->postsInterface->setPostsList($request);
         return response()->json([
             'success' => true,
             'message' => 'Post created successfully',
-            'data' => $post
+            'title' => $request->title,
+            'comment' => $request->comment,
         ], Response::HTTP_OK);
     }
 
@@ -92,16 +81,23 @@ class PostController extends Controller
     public function show($id)
     {
         //
-        $post = $this->user->posts()->find($id);
-
+        $post = $this->postsInterface->showSelectedPost($id);
         if (!$post) {
             return response()->json([
                 'success' => false,
-                'message' => 'Sorry, product not found.'
-            ], 400);
-        }
+                'message' => 'Sorry, User not found.',
 
-        return $post;
+            ], 400);
+        } else {
+            return response()->json([
+                'success' => true,
+                "id" => $post->id,
+                "title" => $post->title,
+                "comment" => $post->comment,
+                "status" => $post->status,
+                "created_user_id" => $post->create_user_id
+            ], Response::HTTP_OK);
+        }
     }
 
     /**
@@ -122,31 +118,29 @@ class PostController extends Controller
      * @param  \App\Models\Post  $post
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Post $post)
+    public function update(Request $request, int $id)
     {
         //
-        $data = $request->only('title', 'description');
+        $data = $request->only('title', 'comment', 'status');
         $validator = Validator::make($data, [
             'title' => 'required|string',
-            'description' => 'required',
+            'comment' => 'required',
+            'status' => 'required',
         ]);
 
         //Send failed response if request is not valid
         if ($validator->fails()) {
             return response()->json(['error' => $validator->messages()], 200);
         }
-
-        //Request is valid, update product
-        $post = $post->update([
-            'title' => $request->title,
-            'description' => $request->description,
-        ]);
+        $posts = $this->postsInterface->updatePostsList($request, $id);
 
         //Product updated, return success response
         return response()->json([
             'success' => true,
             'message' => 'Product updated successfully',
-            'data' => $post
+            'title' => $request->title,
+            'comment' => $request->comment,
+            'status' => $request->status
         ], Response::HTTP_OK);
     }
 
@@ -156,13 +150,17 @@ class PostController extends Controller
      * @param  \App\Models\Post  $post
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Post $post)
+    public function destroy(Post $post, $id)
     {
-        $post->delete();
-
+        $post = $this->postsInterface->deletePostsList($id);
+        log::info('Post Delete');
+        log::info($post);
+        // $id = Post::find($id);
         return response()->json([
             'success' => true,
-            'message' => 'Post deleted successfully'
+            'message' => 'Post deleted successfully',
+            'deleted_user_id' =>  '1',
+            'deleted_at' => '2021-09-08 06:00:00',
         ], Response::HTTP_OK);
     }
 }

@@ -34,13 +34,14 @@ class PostsService implements PostsServiceInterface
   public function setPostsList(Request $request) {
      return $this->postsDao->setPostsList($request);
   }
-  public function updatePostsList(Request $request, Post $posts){
-    return $this->postsDao->updatePostsList($request,$posts);
+  public function updatePostsList(Request $request, int $postId){
+    return $this->postsDao->updatePostsList($request,$postId);
   }
-  public function deletePostsList(Post $posts) {
-    return $this->postsDao->deletePostsList($posts);
+  public function deletePostsList(int $id) {
+    return $this->postsDao->deletePostsList($id);
   }
-  public function uploadData(Request $request, int $userId){
-    return $this->postsDao->uploadData($request,$userId);
+  public function showSelectedPost(int $id){
+    return $this->postsDao->showSelectedPost($id);
   }
+  
 }

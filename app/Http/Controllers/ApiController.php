@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Hash;
-
+use DB;
 class ApiController extends Controller
 {
     private $userInterface;
@@ -46,7 +46,10 @@ class ApiController extends Controller
             'email' => $request->email,
             'password' => bcrypt($request->password)
         ]);
-
+        $posts = DB::table('posts')->select('posts.*')
+            ->join('users as u1', 'u1.id', '=', 'posts.create_user_id')
+            ->join('users as u2', 'u2.id', '=', 'posts.updated_user_id')
+            ->get();
         //User created, return success response
         return response()->json([
             'success' => true,
@@ -86,11 +89,13 @@ class ApiController extends Controller
                 'message' => 'Could not create token.',
             ], 500);
         }
-
+        $id = User::where('email', $request->email)->value('id');
         //Token created, return with success response and jwt token
         return response()->json([
             'success' => true,
             'token' => $token,
+            'email' => $request->email,
+            'userId' => $id,
         ]);
     }
 
@@ -124,9 +129,6 @@ class ApiController extends Controller
 
     public function get_user(Request $request)
     {
-        $this->validate($request, [
-            'token' => 'required'
-        ]);
         $user = $this->userInterface->getUserList($request);
         return response()->json(['user' => $user]);
     }
@@ -166,7 +168,7 @@ class ApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User created successfully',
-            'data' =>  $user
+            $user
         ], Response::HTTP_OK);
     }
     public function update_user(Request $request, User $user)
@@ -200,8 +202,6 @@ class ApiController extends Controller
     }
     public function show($id)
     {
-        Log::info('Welcome from show');
-        log::info($id);
         $user = $this->userInterface->showSelectedUser($id);
         if (!$user) {
             return response()->json([

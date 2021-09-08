@@ -7,7 +7,7 @@ interface PostsServiceInterface
 {
   public function getPostsList();
   public function setPostsList(Request $request);
-  public function updatePostsList(Request $request, Post $posts);
-  public function deletePostsList(Post $posts);
-  public function uploadData(Request $request, int $userId);
+  public function updatePostsList(Request $request,int $postId);
+  public function deletePostsList(int $id);
+  public function showSelectedPost(int $id);
 }

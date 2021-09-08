@@ -17,8 +17,16 @@ class UserDao implements UserDaoInterface
   //user list action
   public function getUserList(Request $request)
   {
-    $user = JWTAuth::authenticate($request->token);
-    return $user;
+    // log::info('get User');
+    // log::info($request);
+    // $user = JWTAuth::authenticate($request->token);
+    // return $user;
+    $users = DB::table('users')
+    ->select('users.*')
+    ->get();
+    log::info('GetUserLists');
+    log::info( $users);
+  return $users;
   }
 
 
